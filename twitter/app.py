@@ -1,4 +1,5 @@
 import json
+import os
 
 # web crawling
 import time
@@ -53,7 +54,6 @@ class App:
     def corrigir_palavra(self, palavra):
         for palavra_base in self.base['palavroes']:
             if self.levenshtein(palavra, palavra_base) <= 3:
-                print(f"Palavra retirada: {palavra}")
                 return ''
             return palavra
     
@@ -63,7 +63,14 @@ class App:
         return ' '.join(palavras_corrigidas)
     
     def search_twitter(self, term):
-        driver = webdriver.Chrome()
+        
+        options = webdriver.ChromeOptions()
+        options.add_argument("--headless=new")
+        options.add_argument("--no-sandbox")
+        options.add_argument("--disable-dev-shm-usage")
+        options.add_argument("--disable-gpu")
+
+        driver = webdriver.Chrome(options=options)
         driver.get("https://x.com/login")
         
         WebDriverWait(driver, 10).until(
@@ -79,27 +86,28 @@ class App:
         )
         
         password = driver.find_element(By.XPATH, '//input[@name="password"]')
-        password.send_keys('MIrai123@') 
+        password.send_keys('Mirai123@') 
         password.send_keys(Keys.RETURN)
         
         WebDriverWait(driver, 10).until(
-            EC.presence_of_element_located((By.XPATH, '//input[@class="r-30o5oe r-1dz5y72 r-1niwhzg r-17gur6a r-1yadl64 r-deolkf r-homxoj r-poiln3 r-7cikom r-1ny4l3l r-xyw6el r-13qz1uu r-fdjqy7"]'))
+            EC.presence_of_element_located((By.XPATH, '//input'))
         )
         
         driver.get("https://x.com/search?q=" + term)
         
         WebDriverWait(driver, 10).until(
-            EC.presence_of_element_located((By.LINK_TEXT, "Latest"))
+            EC.presence_of_element_located((By.LINK_TEXT, 'Mais recentes'))
         )
         
-        latest_tab = driver.find_element(By.LINK_TEXT, "Latest")
+        latest_tab = driver.find_element(By.LINK_TEXT, 'Mais recentes')
         latest_tab.click()
         
         tweets = []
         
         for i in range(10):
+            
             WebDriverWait(driver, 10).until(
-                EC.presence_of_element_located((By.TAG_NAME, "article"))
+                EC.presence_of_element_located((By.XPATH, '//article[@role="article"]'))
             )
             
             driver.execute_script("window.scrollTo(0, document.body.scrollHeight);")
@@ -191,7 +199,8 @@ class App:
         plt.xlabel('Sentimento')
         plt.ylabel('Número de Tweets')
         plt.title('Distribuição de Sentimentos')
-        plt.savefig('twitter/resultados/grafico.png')
+        nome = len([f for f in os.listdir('twitter/resultados') if f.startswith('grafico')]) + 1
+        plt.savefig('twitter/resultados/grafico' + str(nome) + '.png')
         plt.show()
     
     def exibir_wordcloud(self):
@@ -201,7 +210,8 @@ class App:
         
         plt.imshow(wordcloud, interpolation='bilinear')
         plt.axis('off')
-        plt.savefig('twitter/resultados/wordcloud.png')
+        nome = len([f for f in os.listdir('twitter/resultados') if f.startswith('wordcloud')]) + 1
+        plt.savefig('twitter/resultados/wordcloud' + str(nome) + '.png')
         plt.show()
     
     def run(self):
@@ -238,5 +248,11 @@ def main():
     
 if __name__ == '__main__':
     
-    main()   
-    
+    while True:
+        try:
+            time.sleep(1800)
+            main()
+            break
+        except Exception as e:
+            print(e)
+            time.sleep(5)
